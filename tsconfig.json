@@ -1,0 +1,15 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "alwaysStrict": true,
+        "module": "es2015",
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "target": "es2017",
+        "noImplicitAny": true,
+        "moduleResolution": "node",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "types": ["node", "jest", "reflect-metadata"]
+    }
+}
