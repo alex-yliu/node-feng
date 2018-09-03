@@ -19,6 +19,9 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
     const log = container.get<Logger>(DILog.Logger);
     log.info({ioServer}, 'Initializing Server Module');
     const ioClientMetaData: IoClientMetaData = Reflect.getMetadata('LYF:IOCLIENTMETADATA', Reflect);
+    if (ioClientMetaData == null) {
+        return;
+    }
     const ioClientConstructor = ioClientMetaData.clazz;
     const ioClientConfig = ioClientMetaData.config;
     const ioClientAuthMethod: string = Reflect.getMetadata('LYF:IOCLIENT:IOAUTHENTICATE', ioClientConstructor);
