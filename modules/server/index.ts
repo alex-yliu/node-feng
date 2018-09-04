@@ -1,4 +1,4 @@
-import { ContainerModule, Container, AsyncContainerModule } from 'inversify';
+import { ContainerModule, Container } from 'inversify';
 import { Application } from 'express';
 import bodyParser from 'body-parser';
 
@@ -13,7 +13,11 @@ import { ClassType } from 'class-transformer/ClassTransformer';
 import { DI, IoContext, IoClientMetaData, IoClientConfig, IoMessageMetaDataSet } from './server.models';
 import { bind } from '../../utils';
 import { DI as DILog } from '../log/log.models';
+import { DI as RedisDI } from '../redis/redis.models';
 import Logger from 'bunyan';
+import redis from 'redis';
+import session from 'express-session';
+import connectRedis from 'connect-redis';
 
 export function defineOnConnectContext(container: Container, ioServer: IOServer) {
     const log = container.get<Logger>(DILog.Logger);
@@ -72,8 +76,9 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
 
 }
 
-const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, envFileName: string) => {
+const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, envFileName: string, redisSessionStore: string = undefined) => {
     return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
+        const log = container.get<Logger>(DILog.Logger);
         const appName = container.get<string>('appName');
         const loadEnv = container.get<EnvLoader<T>>(EnvDI.EnvLoaderType);
         const env = await loadEnv(envClazz, `${projectRoot}/envs/${appName}/${envFileName}.env`);
@@ -83,6 +88,23 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
             // _app.use(compression);
             _app.use(bodyParser.json());
             _app.use(bodyParser.urlencoded({ extended: true }));
+            if (redisSessionStore != null) {
+                const sessionRedisClient = container.getNamed<redis.RedisClient>(RedisDI.RedisClient, `redis.${redisSessionStore}`);
+                if (sessionRedisClient == null) {
+                    log.error(`redis.${redisSessionStore} does not exist`, 'Redis Session configuration error');
+                    return;
+                }
+                const RedisStore = connectRedis(session);
+                _app.use(session({
+                    store: new RedisStore({
+                        client: sessionRedisClient,
+                    }),
+                    secret: 'moc.nederemmus',
+                    saveUninitialized: true,
+                    name: 'sessionId',
+                }));
+            }
+
         });
         const app = appServer.build();
         container.bind<Application>(ServerDI.Application).toConstantValue(app);

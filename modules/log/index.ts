@@ -18,6 +18,7 @@ const factory: ModuleFactory = (sid: string) => {
         });
         return new ContainerModule(bind => {
             bind<Logger>(DI.Logger).toConstantValue(log);
+            bind<string>('START_ID').toConstantValue(sid);
         });
     };
 };
