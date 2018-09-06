@@ -54,3 +54,8 @@ export interface IoMessageMetaData {
 export interface IoMessageMetaDataSet {
     [key: string]: IoMessageMetaData;
 }
+
+export interface SessionArg {
+    redisEnv: string; // redis env name
+    secret: string;
+}

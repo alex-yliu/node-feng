@@ -7,7 +7,7 @@ import { ModuleFactory } from '../module.loader';
 import { createServer, Server as HTTPServer } from 'http';
 import SocketIO from 'socket.io';
 import { Server as IOServer } from 'socket.io';
-import { DI as ServerDI, ServerEnv } from './server.models';
+import { DI as ServerDI, ServerEnv, SessionArg } from './server.models';
 import { DI as EnvDI, EnvLoader } from '../env/env.models';
 import { ClassType } from 'class-transformer/ClassTransformer';
 import { DI, IoContext, IoClientMetaData, IoClientConfig, IoMessageMetaDataSet } from './server.models';
@@ -76,7 +76,7 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
 
 }
 
-const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, envFileName: string, redisSessionStore: string = undefined) => {
+const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, envFileName: string, sessionArg: SessionArg | undefined) => {
     return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
         const log = container.get<Logger>(DILog.Logger);
         const appName = container.get<string>('appName');
@@ -88,10 +88,10 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
             // _app.use(compression);
             _app.use(bodyParser.json());
             _app.use(bodyParser.urlencoded({ extended: true }));
-            if (redisSessionStore != null) {
-                const sessionRedisClient = container.getNamed<redis.RedisClient>(RedisDI.RedisClient, `redis.${redisSessionStore}`);
+            if (sessionArg != null) {
+                const sessionRedisClient = container.getNamed<redis.RedisClient>(RedisDI.RedisClient, `redis.${sessionArg.redisEnv}`);
                 if (sessionRedisClient == null) {
-                    log.error(`redis.${redisSessionStore} does not exist`, 'Redis Session configuration error');
+                    log.error(`redis.${sessionArg.redisEnv} does not exist`, 'Redis Session configuration error');
                     return;
                 }
                 const RedisStore = connectRedis(session);
@@ -99,7 +99,7 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
                     store: new RedisStore({
                         client: sessionRedisClient,
                     }),
-                    secret: 'moc.nederemmus',
+                    secret: sessionArg.secret,
                     saveUninitialized: true,
                     name: 'sessionId',
                 }));
