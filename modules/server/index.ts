@@ -88,6 +88,7 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
             // _app.use(compression);
             _app.use(bodyParser.json());
             _app.use(bodyParser.urlencoded({ extended: true }));
+            _app.use((req, res) => res.removeHeader('X-Powered-By'));
             if (sessionArg != null) {
                 const sessionRedisClient = container.getNamed<redis.RedisClient>(RedisDI.RedisClient, `redis.${sessionArg.redisEnv}`);
                 if (sessionRedisClient == null) {
