@@ -58,4 +58,5 @@ export interface IoMessageMetaDataSet {
 export interface SessionArg {
     redisEnv: string; // redis env name
     secret: string;
+    expireInHours: number;
 }
