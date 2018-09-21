@@ -1,6 +1,7 @@
 import { IsInt, IsPositive, IsString, IsUrl } from 'class-validator';
 import { Type, Expose } from 'class-transformer';
 import { Socket } from 'socket.io';
+import { Options as MulterOptions } from 'multer';
 import { ConstructorFunction } from '../../utils';
 
 export const DI = {
@@ -13,6 +14,7 @@ export const DI = {
     IoClient: Symbol.for('IoClient'),
     IoClientMetaData: Symbol.for('IoClientMetaData'),
     IoClientConfig: Symbol.for('IoClientConfig'),
+    Upload: Symbol.for('Upload'),
 };
 
 export class ServerEnv {
@@ -55,8 +57,17 @@ export interface IoMessageMetaDataSet {
     [key: string]: IoMessageMetaData;
 }
 
-export interface SessionArg {
+export interface SessionConfig {
     redisEnv: string; // redis env name
     secret: string;
     expireInHours: number;
+}
+
+export interface MulterConfig {
+    dest: string;
+}
+
+export interface ServerModuleConfig {
+    sessionConfig?: SessionConfig;
+    multerConfig?: MulterOptions;
 }

@@ -7,7 +7,7 @@ import { ModuleFactory } from '../module.loader';
 import { createServer, Server as HTTPServer } from 'http';
 import SocketIO from 'socket.io';
 import { Server as IOServer } from 'socket.io';
-import { DI as ServerDI, ServerEnv, SessionArg } from './server.models';
+import { DI as ServerDI, ServerEnv, SessionConfig, ServerModuleConfig } from './server.models';
 import { DI as EnvDI, EnvLoader } from '../env/env.models';
 import { ClassType } from 'class-transformer/ClassTransformer';
 import { DI, IoContext, IoClientMetaData, IoClientConfig, IoMessageMetaDataSet } from './server.models';
@@ -18,6 +18,7 @@ import Logger from 'bunyan';
 import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
+import multer from 'multer';
 
 export function defineOnConnectContext(container: Container, ioServer: IOServer) {
     const log = container.get<Logger>(DILog.Logger);
@@ -76,7 +77,10 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
 
 }
 
-const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, envFileName: string, sessionArg: SessionArg | undefined) => {
+const factory: ModuleFactory = <T extends ServerEnv>(
+    envClazz: ClassType<T>,
+    envFileName: string,
+    serverModuleConfig: ServerModuleConfig | undefined) => {
     return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
         const log = container.get<Logger>(DILog.Logger);
         const appName = container.get<string>('appName');
@@ -84,6 +88,10 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
         const env = await loadEnv(envClazz, `${projectRoot}/envs/${appName}/${envFileName}.env`);
         container.bind<T>(ServerDI.ServerEnv).toConstantValue(env);
         const appServer = new InversifyExpressServer(container);
+        if (serverModuleConfig != null && serverModuleConfig.multerConfig != null) {
+            const upload = multer(serverModuleConfig.multerConfig);
+            container.bind<multer.Instance>(ServerDI.Upload).toConstantValue(upload);
+        }
         appServer.setConfig(_app => {
             // _app.use(compression);
             _app.use(bodyParser.json());
@@ -92,10 +100,17 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
                 res.removeHeader('X-Powered-By');
                 next();
             });
-            if (sessionArg != null) {
-                const sessionRedisClient = container.getNamed<redis.RedisClient>(RedisDI.RedisClient, `redis.${sessionArg.redisEnv}`);
+
+            if (serverModuleConfig == null) {
+                return;
+            }
+
+            if (serverModuleConfig.sessionConfig != null) {
+                const sessionRedisClient = container.getNamed<redis.RedisClient>(
+                    RedisDI.RedisClient,
+                    `redis.${serverModuleConfig.sessionConfig.redisEnv}`);
                 if (sessionRedisClient == null) {
-                    log.error(`redis.${sessionArg.redisEnv} does not exist`, 'Redis Session configuration error');
+                    log.error(`redis.${serverModuleConfig.sessionConfig.redisEnv} does not exist`, 'Redis Session configuration error');
                     return;
                 }
                 const RedisStore = connectRedis(session);
@@ -103,11 +118,11 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
                     store: new RedisStore({
                         client: sessionRedisClient,
                     }),
-                    secret: sessionArg.secret || 'summereden.com',
+                    secret: serverModuleConfig.sessionConfig.secret || 'summereden.com',
                     saveUninitialized: true,
                     name: 'sessionId',
                     cookie: {
-                        maxAge: (sessionArg.expireInHours || 24 * 7) * 60 * 60 * 1000,
+                        maxAge: (serverModuleConfig.sessionConfig.expireInHours || 24 * 7) * 60 * 60 * 1000,
                     },
                 }));
             }
