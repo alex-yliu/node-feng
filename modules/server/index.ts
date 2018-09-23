@@ -103,7 +103,7 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
                     store: new RedisStore({
                         client: sessionRedisClient,
                     }) as Store,
-                    secret: sessionArg.secret || 'summereden.com',
+                    secret: sessionArg.secret || 'default-secret',
                     saveUninitialized: true,
                     name: 'sessionId',
                     cookie: {
