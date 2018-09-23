@@ -16,7 +16,7 @@ import { DI as DILog } from '../log/log.models';
 import { DI as RedisDI } from '../redis/redis.models';
 import Logger from 'bunyan';
 import redis from 'redis';
-import session from 'express-session';
+import session, { Store } from 'express-session';
 import connectRedis from 'connect-redis';
 
 export function defineOnConnectContext(container: Container, ioServer: IOServer) {
@@ -102,7 +102,7 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
                 _app.use(session({
                     store: new RedisStore({
                         client: sessionRedisClient,
-                    }),
+                    }) as Store,
                     secret: sessionArg.secret || 'summereden.com',
                     saveUninitialized: true,
                     name: 'sessionId',
