@@ -7,7 +7,7 @@ import { ModuleFactory } from '../module.loader';
 import { createServer, Server as HTTPServer } from 'http';
 import SocketIO from 'socket.io';
 import { Server as IOServer } from 'socket.io';
-import { DI as ServerDI, ServerEnv, SessionArg } from './server.models';
+import { DI as ServerDI, ServerEnv, ServerConfig } from './server.models';
 import { DI as EnvDI, EnvLoader } from '../env/env.models';
 import { ClassType } from 'class-transformer/ClassTransformer';
 import { DI, IoContext, IoClientMetaData, IoClientConfig, IoMessageMetaDataSet } from './server.models';
@@ -16,12 +16,12 @@ import { DI as DILog } from '../log/log.models';
 import { DI as RedisDI } from '../redis/redis.models';
 import Logger from 'bunyan';
 import redis from 'redis';
-import session, { Store } from 'express-session';
+import expressSession, { Store } from 'express-session';
 import connectRedis from 'connect-redis';
 
 export function defineOnConnectContext(container: Container, ioServer: IOServer) {
     const log = container.get<Logger>(DILog.Logger);
-    log.info({ioServer}, 'Initializing Server Module');
+    log.info({ ioServer }, 'Initializing Server Module');
     const ioClientMetaData: IoClientMetaData = Reflect.getMetadata('LYF:IOCLIENTMETADATA', Reflect);
     if (ioClientMetaData == null) {
         return;
@@ -34,7 +34,7 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
     const ioMessageMetaDataSet: IoMessageMetaDataSet = Reflect.getMetadata('LYF:IOCLIENT:IOMESSAGEMETADATASET', ioClientConstructor);
     ioServer.on('connection', async (socket) => {
         // tslint:disable-next-line:no-console
-        log.info({socket}, defineOnConnectContext.name);
+        log.info({ socket }, defineOnConnectContext.name);
 
         const context: IoContext = {
             socket,
@@ -64,7 +64,7 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
                 socket.disconnect(true);
                 // tslint:disable-next-line:no-console
                 console.log('exception: ', err);
-                log.error({err});
+                log.error({ err });
             }
         }
         // tslint:disable-next-line:forin
@@ -76,7 +76,10 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
 
 }
 
-const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, envFileName: string, sessionArg: SessionArg | undefined) => {
+const factory: ModuleFactory = <T extends ServerEnv>(
+    envClazz: ClassType<T>,
+    envFileName: string,
+    serverConfig?: ServerConfig) => {
     return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
         const log = container.get<Logger>(DILog.Logger);
         const appName = container.get<string>('appName');
@@ -86,20 +89,22 @@ const factory: ModuleFactory = <T extends ServerEnv>(envClazz: ClassType<T>, env
         const appServer = new InversifyExpressServer(container);
         appServer.setConfig(_app => {
             // _app.use(compression);
+            _app.use(bodyParser.text({type: 'application/graphql'}));
             _app.use(bodyParser.json());
             _app.use(bodyParser.urlencoded({ extended: true }));
             _app.use((req, res, next) => {
                 res.removeHeader('X-Powered-By');
                 next();
             });
-            if (sessionArg != null) {
+            if (serverConfig && serverConfig.session != null) {
+                const sessionArg = serverConfig.session;
                 const sessionRedisClient = container.getNamed<redis.RedisClient>(RedisDI.RedisClient, `redis.${sessionArg.redisEnv}`);
                 if (sessionRedisClient == null) {
                     log.error(`redis.${sessionArg.redisEnv} does not exist`, 'Redis Session configuration error');
                     return;
                 }
-                const RedisStore = connectRedis(session);
-                _app.use(session({
+                const RedisStore = connectRedis(expressSession);
+                _app.use(expressSession({
                     store: new RedisStore({
                         client: sessionRedisClient,
                     }) as Store,
