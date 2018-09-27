@@ -1,5 +1,7 @@
-import { TranslationPhrase, TranslationsConfig, Translations } from './model';
+import { TranslationsConfig, Translations } from './model';
 import Mustache from 'mustache';
+
+export * from './model';
 
 export const languages = ['af', 'sq', 'ar-sa', 'ar-iq', 'ar-eg', 'ar-lf', 'ar-dz', 'ar-ma', 'ar-tn', 'ar-om',
     'ar-ye', 'ar-sy', 'ar-jo', 'ar-lb', 'ar-kw', 'ar-ae', 'ar-bh', 'ar-qa', 'eu', 'bg',
@@ -60,6 +62,6 @@ export function translate(lang: string, phrase: string, params?: any): string {
     if (template == null) {
         return phrase;
     }
-    Mustache.render(template, params);
+    return Mustache.render(template, params);
 
 }
