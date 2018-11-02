@@ -18,6 +18,7 @@ import Logger from 'bunyan';
 import redis from 'redis';
 import expressSession, { Store } from 'express-session';
 import connectRedis from 'connect-redis';
+import cookieParser from 'cookie-parser';
 
 export function defineOnConnectContext(container: Container, ioServer: IOServer) {
     const log = container.get<Logger>(DILog.Logger);
@@ -89,6 +90,7 @@ const factory: ModuleFactory = <T extends ServerEnv>(
         const appServer = new InversifyExpressServer(container);
         appServer.setConfig(_app => {
             // _app.use(compression);
+            _app.use(cookieParser());
             _app.use(bodyParser.text({type: 'application/graphql'}));
             _app.use(bodyParser.json());
             _app.use(bodyParser.urlencoded({ extended: true }));
