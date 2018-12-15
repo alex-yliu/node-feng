@@ -1,5 +1,5 @@
 import { decorate, injectable } from 'inversify';
-import { IoClientConfig, IoClientMetaData, IoMessageMetaDataSet } from './server.models';
+import { IoClientConfig, IoClientMetaData, IoMessageMetaDataSet, IoClientMetaStore } from './server.models';
 
 export function ioClient(config: IoClientConfig): ClassDecorator {
     // tslint:disable-next-line:ban-types
@@ -9,10 +9,16 @@ export function ioClient(config: IoClientConfig): ClassDecorator {
             config,
             clazz,
         };
-        if (Reflect.hasMetadata('LYF:IOCLIENTMETADATA', Reflect)) {
-            throw new Error(`DUPLICATE IOCLIENTMETADATA: ${clazz.name}`);
+        if (!Reflect.hasMetadata('LYF:IOCLIENTMETASTORE', Reflect)) {
+            Reflect.defineMetadata('LYF:IOCLIENTMETASTORE', {}, Reflect);
         }
-        Reflect.defineMetadata('LYF:IOCLIENTMETADATA', metadata, Reflect);
+        const metaDataStore: IoClientMetaStore = Reflect.getMetadata('LYF:IOCLIENTMETASTORE', Reflect);
+        metaDataStore[config.namespace] = metadata;
+        
+        // if (Reflect.hasMetadata('LYF:IOCLIENTMETADATA', Reflect)) {
+        //     throw new Error(`DUPLICATE IOCLIENTMETADATA: ${clazz.name}`);
+        // }
+        // Reflect.defineMetadata('LYF:IOCLIENTMETADATA', metadata, Reflect);
     };
 }
 

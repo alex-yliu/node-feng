@@ -8,6 +8,7 @@
 
 # dependencies
 /node_modules
+/.cache-loader
 
 # IDEs and editors
 /.idea

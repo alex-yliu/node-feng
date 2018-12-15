@@ -10,6 +10,7 @@
         "moduleResolution": "node",
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
+        "baseUrl": "./",
         "types": ["node", "jest", "reflect-metadata"]
     }
 }

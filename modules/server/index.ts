@@ -7,7 +7,7 @@ import { ModuleFactory } from '../module.loader';
 import { createServer, Server as HTTPServer } from 'http';
 import SocketIO from 'socket.io';
 import { Server as IOServer } from 'socket.io';
-import { DI as ServerDI, ServerEnv, ServerConfig } from './server.models';
+import { DI as ServerDI, ServerEnv, ServerConfig, IoClientMetaStore } from './server.models';
 import { DI as EnvDI, EnvLoader } from '../env/env.models';
 import { ClassType } from 'class-transformer/ClassTransformer';
 import { DI, IoContext, IoClientMetaData, IoClientConfig, IoMessageMetaDataSet } from './server.models';
@@ -77,6 +77,66 @@ export function defineOnConnectContext(container: Container, ioServer: IOServer)
 
 }
 
+function defineIOConnectOnNamespace(container: Container, ioServer: IOServer, ns: string, metaData: IoClientMetaData) {
+    const log = container.get<Logger>(DILog.Logger);
+    const ioClientConstructor = metaData.clazz;
+    const ioClientConfig = metaData.config;
+    const ioClientAuthMethod: string = Reflect.getMetadata('LYF:IOCLIENT:IOAUTHENTICATE', ioClientConstructor);
+    const ioMessageMetaDataSet: IoMessageMetaDataSet = Reflect.getMetadata('LYF:IOCLIENT:IOMESSAGEMETADATASET', ioClientConstructor);
+    ioServer.of(ns).on('connection', async (socket) => {
+        log.info({ socket }, defineIOConnectOnNamespace.name);
+        const context: IoContext = {
+            socket,
+        };
+        const childContainer = container.createChild();
+        childContainer.bind(DI.IoClient).to(ioClientConstructor);
+        childContainer.bind<IoContext>(DI.IoContext).toConstantValue(context);
+        const ioClient = childContainer.get<any>(DI.IoClient);
+        if (ioClientAuthMethod != null) {
+            // tslint:disable-next-line:ban-types
+            const fn = bind(ioClient[ioClientAuthMethod], ioClient);
+            let authenticated = false;
+            try {
+                if (fn.constructor.name === 'AsyncFunction') {
+                    authenticated = await fn();
+                } else {
+                    authenticated = fn();
+                }
+                if (authenticated !== true) {
+                    socket.emit('authenticated', false);
+                    socket.disconnect(true);
+                } else {
+                    socket.emit('authenticated', true);
+                }
+            } catch (err) {
+                socket.emit('authenticated', false, err);
+                socket.disconnect(true);
+                // tslint:disable-next-line:no-console
+                console.log('exception: ', err);
+                log.error({ err });
+            }
+        }
+        // tslint:disable-next-line:forin
+        for (const key in ioMessageMetaDataSet) {
+            const method = ioMessageMetaDataSet[key].method;
+            socket.on(key, bind(ioClient[method], ioClient));
+        }
+    });
+}
+
+export function defineIOConnections(container: Container, ioServer: IOServer) {
+    const log = container.get<Logger>(DILog.Logger);
+    log.info({ ioServer }, 'Initializing Server Module');
+    const ioClientMetaStore: IoClientMetaStore = Reflect.getMetadata('LYF:IOCLIENTMETASTORE', Reflect);
+    if (ioClientMetaStore == null) {
+        return;
+    }
+
+    for (const ns of Object.keys(ioClientMetaStore)) {
+        defineIOConnectOnNamespace(container, ioServer, ns, ioClientMetaStore[ns]);
+    }
+}
+
 const factory: ModuleFactory = <T extends ServerEnv>(
     envClazz: ClassType<T>,
     envFileName: string,
@@ -129,7 +189,8 @@ const factory: ModuleFactory = <T extends ServerEnv>(
             serveClient: false,
         });
         container.bind<IOServer>(ServerDI.IOServer).toConstantValue(ioServer);
-        defineOnConnectContext(container, ioServer);
+        // defineOnConnectContext(container, ioServer);
+        defineIOConnections(container, ioServer);
         return new ContainerModule(() => {
         });
     };

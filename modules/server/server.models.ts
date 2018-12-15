@@ -37,14 +37,17 @@ export interface IoContext {
 }
 
 export interface IoClientConfig {
-    key: string; // message endpoint key
-    types: string[]; // message types
+    namespace: string;
 }
 
 export interface IoClientMetaData {
     config: IoClientConfig;
     // tslint:disable-next-line:ban-types
     clazz: ConstructorFunction;
+}
+
+export interface IoClientMetaStore {
+    [key: string]: IoClientMetaData;
 }
 
 export interface IoMessageMetaData {
