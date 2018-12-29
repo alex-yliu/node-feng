@@ -7,9 +7,10 @@ import Knex from 'knex';
 const factory: ModuleFactory = (...dbNames: string[]) => {
     return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
         const loadEnv = container.get<EnvLoader<DatabaseEnv>>(EnvDI.EnvLoaderType);
+        const appName = container.get<string>('appName');
         const knexs: Map<string, Knex> = new Map();
         for (const dbName of dbNames) {
-            const env = await loadEnv(DatabaseEnv, `${projectRoot}/envs/database.${dbName}.env`);
+            const env = await loadEnv(DatabaseEnv, `${projectRoot}/envs/${appName}/database.${dbName}.env`);
             const knex: Knex = Knex({
                 client: env.DB_CLIENT,
                 connection: {

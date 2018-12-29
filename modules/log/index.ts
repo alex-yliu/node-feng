@@ -8,7 +8,7 @@ const factory: ModuleFactory = (sid: string) => {
     return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
         const appName = container.get<string>('appName');
         const loadEnv = container.get<EnvLoader<LogEnv>>(EnvDI.EnvLoaderType);
-        const env = await loadEnv(LogEnv, `${projectRoot}/envs/bunyan.env`);
+        const env = await loadEnv(LogEnv, `${projectRoot}/envs/${appName}/bunyan.env`);
         const log: Logger = Logger.createLogger({
             name: appName,
             sid,
