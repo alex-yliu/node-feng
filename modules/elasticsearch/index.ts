@@ -19,7 +19,7 @@ const factory: ModuleFactory = (...esNames: string[]) => {
         }
         return new ContainerModule(bind => {
             esClients.forEach( (client, esName) => {
-                bind<Client>(DI.ElasticSearch).toConstantValue(client).whenTargetNamed(`database.${esName}`);
+                bind<Client>(DI.ElasticSearch).toConstantValue(client).whenTargetNamed(`elasticsearch.${esName}`);
             });
         });
     };
