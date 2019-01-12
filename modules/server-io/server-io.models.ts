@@ -4,15 +4,9 @@ import { Socket } from 'socket.io';
 import { ConstructorFunction } from '../../utils';
 
 export const DI = {
-    Application: Symbol.for('Application'),
-    HTTPServer: Symbol.for('HttpServer'),
     IOServer: Symbol.for('IOServer'),
-    ServerEnv: Symbol.for('ServerEnv'),
-    Socket: Symbol.for('IOSocket'),
     IoContext: Symbol.for('IOContext'),
     IoClient: Symbol.for('IoClient'),
-    IoClientMetaData: Symbol.for('IoClientMetaData'),
-    IoClientConfig: Symbol.for('IoClientConfig'),
 };
 
 export class ServerEnv {
