@@ -5,12 +5,12 @@ import { DI as EnvDI, EnvLoader } from '../env/env.models';
 import redis from 'redis';
 
 const factory: ModuleFactory = (...dbNames: string[]) => {
-    return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
+    return async (configDir: string, container: Container): Promise<ContainerModule> => {
         const appName = container.get<string>('appName');
         const loadEnv = container.get<EnvLoader<RedisEnv>>(EnvDI.EnvLoaderType);
         const redises: Map<string, redis.RedisClient> = new Map();
         for (const dbName of dbNames) {
-            const env = await loadEnv(RedisEnv, `${projectRoot}/envs/${appName}/redis.${dbName}.env`);
+            const env = await loadEnv(RedisEnv, `${configDir}/envs/${appName}/redis.${dbName}.env`);
 
             const redisClient = redis.createClient({
                 host: env.REDIS_HOST,

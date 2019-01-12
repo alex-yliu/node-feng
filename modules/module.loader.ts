@@ -1,7 +1,7 @@
 import { ContainerModule, Container } from 'inversify';
 
 import { Server } from 'http';
-import { DI, ServerEnv } from './server/server.models';
+import { DI } from './server/server.models';
 
 export type ModuleCreator = (projectRoot: string, container: Container) => ContainerModule | Promise<ContainerModule>;
 export type ModuleFactory = (...args: any[]) => ModuleCreator;
@@ -30,7 +30,7 @@ export class Bootstrap {
     async start(): Promise<void> {
         this.container = await load(this.projectRoot, ...this.moduleCreators);
         this.server = this.container.get<Server>(DI.HTTPServer);
-        this.port = this.container.get<any>(DI.ServerEnv).HTTP_PORT;
+        this.port = this.container.get<number>(DI.HTTP_PORT);
         this.server.listen(this.port, () => {
             // tslint:disable-next-line:no-console
             console.log('Listening on port: ', this.port);

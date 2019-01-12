@@ -1,19 +1,19 @@
 import { ModuleFactory } from '../module.loader';
 import { Container, ContainerModule } from 'inversify';
 import { DI as EnvDI, EnvLoader } from '../env/env.models';
-import { LogEnv, DI } from './log.models';
+import { DI } from './log.models';
 import Logger from 'bunyan';
+import path from 'path';
 
-const factory: ModuleFactory = (sid: string) => {
-    return async (projectRoot: string, container: Container): Promise<ContainerModule> => {
+const factory: ModuleFactory = (sid: string, logDir: string) => {
+    return async (configDir: string, container: Container): Promise<ContainerModule> => {
         const appName = container.get<string>('appName');
-        const loadEnv = container.get<EnvLoader<LogEnv>>(EnvDI.EnvLoaderType);
-        const env = await loadEnv(LogEnv, `${projectRoot}/envs/${appName}/bunyan.env`);
+        const fileName = path.basename(__filename);
         const log: Logger = Logger.createLogger({
             name: appName,
             sid,
             streams: [{
-                path: `./${appName}.log`,
+                path: `${logDir}/${fileName}.${appName}.${sid}.${process.pid}.log`,
             }],
         });
         return new ContainerModule(bind => {
