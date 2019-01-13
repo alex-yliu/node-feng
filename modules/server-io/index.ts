@@ -72,45 +72,62 @@ function defineIOConnectOnNamespace(container: Container, ioServer: IOServer, ns
     const ioClientConstructor = metaData.clazz;
     const ioClientConfig = metaData.config;
     const ioClientAuthMethod: string = Reflect.getMetadata('LYF:IOCLIENT:IOAUTHENTICATE', ioClientConstructor);
+    const ioClientErrorMethod: string = Reflect.getMetadata('LYF:IOCLIENT:IOERROR', ioClientConstructor);
+    const ioClientDisconnectMethod: string = Reflect.getMetadata('LYF:IOCLIENT:IODISCONNECT', ioClientConstructor);
     const ioMessageMetaDataSet: IoMessageMetaDataSet = Reflect.getMetadata('LYF:IOCLIENT:IOMESSAGEMETADATASET', ioClientConstructor);
     ioServer.of(ns).on('connection', async (socket) => {
         log.info({ socket }, defineIOConnectOnNamespace.name);
-        const context: IoContext = {
-            socket,
-        };
-        const childContainer = container.createChild();
-        childContainer.bind(DI.IoClient).to(ioClientConstructor);
-        childContainer.bind<IoContext>(DI.IoContext).toConstantValue(context);
-        const ioClient = childContainer.get<any>(DI.IoClient);
-        if (ioClientAuthMethod != null) {
-            // tslint:disable-next-line:ban-types
-            const fn = bind(ioClient[ioClientAuthMethod], ioClient);
-            let authenticated = false;
-            try {
-                if (fn.constructor.name === 'AsyncFunction') {
-                    authenticated = await fn();
-                } else {
-                    authenticated = fn();
-                }
-                if (authenticated !== true) {
-                    socket.emit('authenticated', false);
-                    socket.disconnect(true);
-                } else {
-                    socket.emit('authenticated', true);
-                }
-            } catch (err) {
-                socket.emit('authenticated', false, err);
-                socket.disconnect(true);
-                // tslint:disable-next-line:no-console
-                console.log('exception: ', err);
-                log.error({ err });
+        try {
+            const context: IoContext = {
+                socket,
+            };
+            const childContainer = container.createChild();
+            childContainer.bind(DI.IoClient).to(ioClientConstructor);
+            childContainer.bind<IoContext>(DI.IoContext).toConstantValue(context);
+            const ioClient = childContainer.get<any>(DI.IoClient);
+            // tslint:disable-next-line:forin
+            for (const key in ioMessageMetaDataSet) {
+                const method = ioMessageMetaDataSet[key].method;
+                socket.on(key, bind(ioClient[method], ioClient));
             }
+
+            if (ioClientErrorMethod != null) {
+                const fn = bind(ioClient[ioClientErrorMethod], ioClient);
+                socket.on('error', fn);
+            }
+
+            if (ioClientDisconnectMethod != null) {
+                const fn = bind(ioClient[ioClientDisconnectMethod], ioClient);
+                socket.on('disconnect', fn);
+            }
+            if (ioClientAuthMethod != null) {
+                // tslint:disable-next-line:ban-types
+                const fn = bind(ioClient[ioClientAuthMethod], ioClient);
+                let authenticated = false;
+                try {
+                    if (fn.constructor.name === 'AsyncFunction') {
+                        authenticated = await fn();
+                    } else {
+                        authenticated = fn();
+                    }
+                    if (authenticated !== true) {
+                        socket.emit('authenticated', false);
+                        socket.disconnect(true);
+                    } else {
+                        socket.emit('authenticated', true);
+                    }
+                } catch (err) {
+                    socket.emit('authenticated', false, err);
+                    socket.disconnect(true);
+                    // tslint:disable-next-line:no-console
+                    console.log('exception: ', err);
+                    log.error({ err });
+                }
+            }
+        } catch (err)  {
+            socket.disconnect(true);
         }
-        // tslint:disable-next-line:forin
-        for (const key in ioMessageMetaDataSet) {
-            const method = ioMessageMetaDataSet[key].method;
-            socket.on(key, bind(ioClient[method], ioClient));
-        }
+
     });
 }
 
@@ -127,7 +144,7 @@ export function defineIOConnections(container: Container, ioServer: IOServer) {
     }
 }
 
-const factory: ModuleFactory = (ioEndpoint: string) => {
+const factory: ModuleFactory = (ioEndpoint: string, transports: string[] = ['websocket']) => {
     return async (configDir: string, container: Container): Promise<ContainerModule> => {
         const log = container.get<Logger>(DILog.Logger);
         const server = container.get<HTTPServer>(ServerDI.HTTPServer);
@@ -135,6 +152,7 @@ const factory: ModuleFactory = (ioEndpoint: string) => {
         const ioServer = SocketIO(server, {
             path: ioEndpoint,
             serveClient: false,
+            transports,
         });
         container.bind<IOServer>(ServerIODI.IOServer).toConstantValue(ioServer);
         // defineOnConnectContext(container, ioServer);
