@@ -47,7 +47,7 @@ export const IO_ENDPOINT = '/endpoint/1';
 const bootstrap = new Bootstrap(CONFIG_DIR,
                                 baseModule('user'),
                                 envModule(),
-                                logModule(INSTANCE_LAUNCH_TIME, LOG_DIR),
+                                logModule(LOG_DIR, 'test'),
                                 databaseModule('master'),
                                 redisModule('master'),
                                 serverModule(HTTP_PORT,

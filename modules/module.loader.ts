@@ -7,11 +7,11 @@ export type ModuleCreator = (projectRoot: string, container: Container) => Conta
 export type ModuleFactory = (...args: any[]) => ModuleCreator;
 export type ModuleLoader = (projectRoot: string, ...moduleCreators: ModuleCreator[]) => Promise<Container>;
 
-export const load: ModuleLoader = async (projectRoot: string, ...moduleCreators: ModuleCreator[]): Promise<Container> => {
+export const load: ModuleLoader = async (configDir: string, ...moduleCreators: ModuleCreator[]): Promise<Container> => {
     const container = new Container();
     for (const creator of moduleCreators) {
 
-        const mod = await creator(projectRoot, container);
+        const mod = await creator(configDir, container);
         (mod instanceof ContainerModule) ? container.load(mod) : container.loadAsync(mod);
 
     }
@@ -23,12 +23,12 @@ export class Bootstrap {
     private server?: Server;
     private port?: number;
     moduleCreators: ModuleCreator[];
-    constructor(private projectRoot: string, ...moduleCreators: ModuleCreator[]) {
+    constructor(private configDir: string, ...moduleCreators: ModuleCreator[]) {
         this.moduleCreators = moduleCreators;
     }
 
     async start(): Promise<void> {
-        this.container = await load(this.projectRoot, ...this.moduleCreators);
+        this.container = await load(this.configDir, ...this.moduleCreators);
         this.server = this.container.get<Server>(DI.HTTPServer);
         this.port = this.container.get<number>(DI.HTTP_PORT);
         this.server.listen(this.port, () => {

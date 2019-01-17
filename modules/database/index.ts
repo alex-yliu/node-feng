@@ -10,7 +10,7 @@ const factory: ModuleFactory = (...dbNames: string[]) => {
         const appName = container.get<string>('appName');
         const knexs: Map<string, Knex> = new Map();
         for (const dbName of dbNames) {
-            const env = await loadEnv(DatabaseEnv, `${configDir}/envs/${appName}/database.${dbName}.env`);
+            const env = await loadEnv(DatabaseEnv, `${configDir}/envs/database.${dbName}.env`);
             const knex: Knex = Knex({
                 client: env.DB_CLIENT,
                 connection: {

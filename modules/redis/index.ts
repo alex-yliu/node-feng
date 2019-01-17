@@ -10,7 +10,7 @@ const factory: ModuleFactory = (...dbNames: string[]) => {
         const loadEnv = container.get<EnvLoader<RedisEnv>>(EnvDI.EnvLoaderType);
         const redises: Map<string, redis.RedisClient> = new Map();
         for (const dbName of dbNames) {
-            const env = await loadEnv(RedisEnv, `${configDir}/envs/${appName}/redis.${dbName}.env`);
+            const env = await loadEnv(RedisEnv, `${configDir}/envs/redis.${dbName}.env`);
 
             const redisClient = redis.createClient({
                 host: env.REDIS_HOST,
