@@ -16,7 +16,7 @@ import cookieParser from 'cookie-parser';
 export const defaultMiddlewares = [
     cookieParser(),
     bodyParser.text({type: 'application/graphql'}),
-    bodyParser.json(),
+    bodyParser.json({ strict: false}),
     bodyParser.urlencoded({ extended: true }),
     (req: Request, res: Response, next: NextFunction) => {
         res.removeHeader('X-Powered-By');
