@@ -18,6 +18,22 @@ export const load: ModuleLoader = async (configDir: string, ...moduleCreators: M
     return container;
 };
 
+export type StartScript = (container: Container, server: Server, port: number) => Promise<void>;
+
+export const defaultStartScript: StartScript = (container: Container, server: Server, port: number): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        server.listen(this.port, () => {
+            // tslint:disable-next-line:no-console
+            console.log('Listening on port: ', port);
+            resolve();
+        }).on('error', err => {
+            // tslint:disable-next-line:no-console
+            console.error('Error Listening on port: ', port, err);
+            reject(err);
+        });
+    });
+};
+
 export class Bootstrap {
     private container?: Container;
     private server?: Server;
@@ -27,18 +43,11 @@ export class Bootstrap {
         this.moduleCreators = moduleCreators;
     }
 
-    async start(): Promise<void> {
+    async start(script: StartScript = defaultStartScript): Promise<void> {
         this.container = await load(this.configDir, ...this.moduleCreators);
         this.server = this.container.get<Server>(DI.HTTPServer);
         this.port = this.container.get<number>(DI.HTTP_PORT);
-        this.server.listen(this.port, () => {
-            // tslint:disable-next-line:no-console
-            console.log('Listening on port: ', this.port);
-        }).on('error', err => {
-            // tslint:disable-next-line:no-console
-            console.error('Error Listening on port: ', this.port, err);
-            throw err;
-        });
+        await script(this.container, this.server, this.port);
     }
     async stop(): Promise<void> {
         this.server && this.server.close();
