@@ -10,6 +10,8 @@ const factory: ModuleFactory = (logDir: string, fileName: string) => {
             name: appName,
             streams: [{
                 path: `${logDir}/${fileName}.log`,
+            }, {
+                stream: process.stdout,
             }],
         });
         return new ContainerModule(bind => {

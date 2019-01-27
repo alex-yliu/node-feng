@@ -1,7 +1,8 @@
 import { ContainerModule, Container } from 'inversify';
-
+import { DI as DILog } from './log/log.models';
 import { Server } from 'http';
 import { DI } from './server/server.models';
+import Logger from 'bunyan';
 
 export type ModuleCreator = (projectRoot: string, container: Container) => ContainerModule | Promise<ContainerModule>;
 export type ModuleFactory = (...args: any[]) => ModuleCreator;
@@ -22,7 +23,7 @@ export type StartScript = (container: Container, server: Server, port: number) =
 
 export const defaultStartScript: StartScript = (container: Container, server: Server, port: number): Promise<void> => {
     return new Promise((resolve, reject) => {
-        server.listen(this.port, () => {
+        server.listen(port, () => {
             // tslint:disable-next-line:no-console
             console.log('Listening on port: ', port);
             resolve();
@@ -45,9 +46,16 @@ export class Bootstrap {
 
     async start(script: StartScript = defaultStartScript): Promise<void> {
         this.container = await load(this.configDir, ...this.moduleCreators);
+        const logger = this.container.get<Logger>(DILog.Logger);
         this.server = this.container.get<Server>(DI.HTTPServer);
         this.port = this.container.get<number>(DI.HTTP_PORT);
-        await script(this.container, this.server, this.port);
+        try {
+            await script(this.container, this.server, this.port);
+            logger.info({ server: this.server, port: this.port }, 'Application Started');
+        } catch (err) {
+            logger.fatal({ server: this.server, port: this.port }, 'Application Start Process Failed');
+            throw err;
+        }
     }
     async stop(): Promise<void> {
         this.server && this.server.close();
