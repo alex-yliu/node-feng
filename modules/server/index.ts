@@ -41,8 +41,7 @@ const factory: ModuleFactory = (
             if (sessionConfig !== false) {
                 const sessionRedisClient = container.getNamed<redis.RedisClient>(RedisDI.RedisClient, `redis.${sessionConfig.redisEnv}`);
                 if (sessionRedisClient == null) {
-                    log.error(`redis.${sessionConfig.redisEnv} does not exist`, 'Redis Session configuration error');
-                    return;
+                    throw new Error(`redis.${sessionConfig.redisEnv} does not exist`);
                 }
                 const RedisStore = connectRedis(expressSession);
                 _app.use(expressSession({

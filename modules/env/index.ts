@@ -22,8 +22,6 @@ async function loadEnv<T>(clazz: ClassType<T>, path: string): Promise<T> {
 const factory: ModuleFactory = (): ModuleCreator => {
     return async (configDir: string, container: Container): Promise<ContainerModule> => {
         const appName = container.get<string>('appName');
-        // tslint:disable-next-line:no-console
-        console.log('appName: ', appName, `${configDir}/envs/node.env`);
         const env = await loadEnv(BaseEnv, `${configDir}/envs/node.env`);
 
         return new ContainerModule( bind => {

@@ -51,9 +51,9 @@ export class Bootstrap {
         this.port = this.container.get<number>(DI.HTTP_PORT);
         try {
             await script(this.container, this.server, this.port);
-            logger.info({ server: this.server, port: this.port }, 'Application Started');
+            logger.info(`Application Started on port ${this.port}`);
         } catch (err) {
-            logger.fatal({ server: this.server, port: this.port }, 'Application Start Process Failed');
+            logger.fatal(`Application Start Process Failed: ${JSON.stringify(err)}`);
             throw err;
         }
     }
