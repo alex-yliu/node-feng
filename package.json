@@ -22,7 +22,7 @@
         "express-validator": "^4.3.0",
         "inversify": "^4.13.0",
         "inversify-express-utils": "^6.0.0",
-        "knex": "^0.14.6",
+        "knex": "^0.19.5",
         "lodash": "^4.17.15",
         "lusca": "^1.5.2",
         "moment": "^2.22.2",
