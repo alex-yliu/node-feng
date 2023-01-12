@@ -9,7 +9,7 @@
         "body-parser": "^1.18.2",
         "bunyan": "^1.8.12",
         "class-transformer": "^0.1.9",
-        "class-validator": "^0.8.5",
+        "class-validator": "^0.14.0",
         "compression": "^1.7.1",
         "connect-redis": "^3.3.3",
         "cookie-parser": "^1.4.3",
